@@ -1,11 +1,11 @@
 server:
-  port: ${PORT:8080}  # Railway injecte la variable d'env PORT
+  port: ${PORT:8080}  # Railway injects this
 
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
