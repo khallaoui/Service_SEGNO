@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8080}  # Render injecte la variable d'env PORT
+  port: ${PORT:8080}  # Railway injecte la variable d'env PORT
 
 spring:
   datasource:
