@@ -1,112 +1,197 @@
 package com.marketplace.segno.service;
 
-
 import com.marketplace.segno.dto.*;
-import com.marketplace.segno.model.Product;
-import com.marketplace.segno.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
 public class SearchService {
-    
-    private final ProductRepository productRepository;
-    private final ProductMapper productMapper;
-    
+
+    private final ExternalProductProvider externalProductProvider;
+    private final SearchHistoryService searchHistoryService;
+
     @Autowired
-    public SearchService(ProductRepository productRepository, ProductMapper productMapper) {
-        this.productRepository = productRepository;
-        this.productMapper = productMapper;
+    public SearchService(ExternalProductProvider externalProductProvider,
+                         SearchHistoryService searchHistoryService) {
+        this.externalProductProvider = externalProductProvider;
+        this.searchHistoryService = searchHistoryService;
     }
-    
+
+    @Transactional(readOnly = false)
     public SearchResponse searchProducts(SearchCriteria criteria) {
         long startTime = System.currentTimeMillis();
-        
-        Pageable pageable = createPageable(criteria);
-        Page<Product> productPage = productRepository.searchProducts(
-            criteria.getQuery(),
-            criteria.getCategory(),
-            criteria.getMinPrice(),
-            criteria.getMaxPrice(),
-            criteria.getMinRating(),
-            pageable
-        );
-        
-        List<ProductDto> productDtos = productPage.getContent().stream()
-            .map(productMapper::toDto)
-            .collect(Collectors.toList());
-        
-        PaginationDto pagination = createPaginationDto(productPage);
+
+        // 1. Fetch all products from external service
+        List<ProductDto> allProducts = externalProductProvider.getAllProducts();
+        if (allProducts == null) {
+            allProducts = List.of();
+        }
+
+        // 2. Apply filters in memory
+        List<ProductDto> filteredProducts = allProducts.stream()
+                .filter(product -> matchesTextQuery(product, criteria.getQuery()))
+                .filter(product -> matchesCategory(product, criteria.getCategory()))
+                .filter(product -> matchesPriceRange(product, criteria.getMinPrice(), criteria.getMaxPrice()))
+                .filter(product -> matchesRating(product, criteria.getMinRating()))
+                .sorted(createComparator(criteria.getSortBy(), criteria.getSortOrder()))
+                .collect(Collectors.toList());
+
+     // 3. Apply pagination
+        int totalElements = filteredProducts.size();
+
+        // Assume page and size have defaults if invalid (negative or zero for size)
+        int page = criteria.getPage() >= 0 ? criteria.getPage() : 0;
+        int size = criteria.getSize() > 0 ? criteria.getSize() : 10;
+
+        int fromIndex = page * size;
+        int toIndex = Math.min(fromIndex + size, totalElements);
+
+
+        List<ProductDto> pageContent = fromIndex >= totalElements ?
+                List.of() : filteredProducts.subList(fromIndex, toIndex);
+
+        // 4. Create pagination info
+        PaginationDto pagination = createPaginationDto(page, size, totalElements);
         AppliedFiltersDto filters = createAppliedFiltersDto(criteria);
-        
+
         long endTime = System.currentTimeMillis();
-        double searchTime = endTime - startTime;
-        
-        return new SearchResponse(productDtos, pagination, (int) productPage.getTotalElements(), searchTime);
-    }
-    
+        double searchTime = (endTime - startTime) / 1000.0;  // convert ms to seconds
+
+        // 5. Save search to history if user is provided and query is not blank
+        if (criteria.getUserId() != null && criteria.getQuery() != null && !criteria.getQuery().trim().isEmpty()) {
+            searchHistoryService.saveSearchToHistory(criteria.getUserId(), criteria.getQuery(), totalElements);
+        }
+
+        return new SearchResponse(pageContent, pagination, filters, totalElements, searchTime);}
+
     @Cacheable("suggestions")
     public List<String> getSearchSuggestions(String query, int limit) {
         if (query == null || query.trim().length() < 2) {
             return List.of();
         }
-        return productRepository.findSuggestions(query.trim(), limit);
+
+        // Try to get suggestions from external service first
+        List<String> externalSuggestions = externalProductProvider.getSearchSuggestions(query.trim(), limit);
+
+        // If external service doesn't provide suggestions, generate from product names
+        if (externalSuggestions == null || externalSuggestions.isEmpty()) {
+            return externalProductProvider.getAllProducts().stream()
+                    .map(ProductDto::getName)
+                    .filter(name -> name != null && name.toLowerCase().contains(query.toLowerCase()))
+                    .distinct()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        }
+
+        return externalSuggestions;
     }
-    
+
     @Cacheable("categories")
     public List<String> getAllCategories() {
-        return productRepository.findAllCategories();
+        List<String> categories = externalProductProvider.getAllCategories();
+        return categories != null ? categories : List.of();
     }
-    
+
     @Cacheable("popular-products")
     public List<ProductDto> getPopularProducts(int limit) {
-        Pageable pageable = PageRequest.of(0, limit);
-        Page<Product> popularProducts = productRepository.findPopularProducts(pageable);
-        return popularProducts.getContent().stream()
-            .map(productMapper::toDto)
-            .collect(Collectors.toList());
+        List<ProductDto> products = externalProductProvider.getAllProducts();
+        if (products == null) {
+            return List.of();
+        }
+
+        return products.stream()
+                .sorted(Comparator
+                        .comparing((ProductDto p) -> p.getReviewCount() != null ? p.getReviewCount() : 0, Comparator.reverseOrder())
+                        .thenComparing((ProductDto p) -> p.getRating() != null ? p.getRating() : 0.0, Comparator.reverseOrder()))
+                .limit(limit)
+                .collect(Collectors.toList());
     }
-    
-    private Pageable createPageable(SearchCriteria criteria) {
-        Sort sort = createSort(criteria.getSortBy(), criteria.getSortOrder());
-        return PageRequest.of(criteria.getPage(), criteria.getSize(), sort);
+
+    private boolean matchesTextQuery(ProductDto product, String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return true;
+        }
+
+        String lowerQuery = query.toLowerCase();
+
+        boolean nameMatch = product.getName() != null && product.getName().toLowerCase().contains(lowerQuery);
+        boolean descriptionMatch = product.getDescription() != null && product.getDescription().toLowerCase().contains(lowerQuery);
+        boolean brandMatch = product.getBrand() != null && product.getBrand().toLowerCase().contains(lowerQuery);
+        boolean tagsMatch = product.getTags() != null && product.getTags().stream()
+                .filter(tag -> tag != null)
+                .anyMatch(tag -> tag.toLowerCase().contains(lowerQuery));
+
+        return nameMatch || descriptionMatch || brandMatch || tagsMatch;
     }
+
     
-    private Sort createSort(String sortBy, String sortOrder) {
-        Sort.Direction direction = "asc".equalsIgnoreCase(sortOrder) ? 
-            Sort.Direction.ASC : Sort.Direction.DESC;
-        
-        return switch (sortBy != null ? sortBy.toLowerCase() : "relevance") {
-            case "name" -> Sort.by(direction, "name");
-            case "price" -> Sort.by(direction, "price");
-            case "rating" -> Sort.by(direction, "rating");
-            case "popularity" -> Sort.by(direction, "reviewCount");
-            default -> Sort.by(Sort.Direction.DESC, "reviewCount", "rating");
+    private boolean matchesCategory(ProductDto product, String category) {
+        if (category == null || category.trim().isEmpty()) {
+            return true;
+        }
+        if (product.getCategory() == null) {
+            return false;
+        }
+
+        String productCat = product.getCategory().trim();
+        String searchCat = category.trim();
+        System.out.println("Comparing category: [" + productCat + "] with [" + searchCat + "]");
+
+        return productCat.equalsIgnoreCase(searchCat);
+    }
+
+    
+    
+
+    private boolean matchesPriceRange(ProductDto product, Double minPrice, Double maxPrice) {
+        if (product.getPrice() == null) return false;
+        if (minPrice != null && product.getPrice() < minPrice) return false;
+        if (maxPrice != null && product.getPrice() > maxPrice) return false;
+        return true;
+    }
+
+    private boolean matchesRating(ProductDto product, Double minRating) {
+        if (minRating == null) {
+            return true;
+        }
+        return product.getRating() != null && product.getRating() >= minRating;
+    }
+
+    private Comparator<ProductDto> createComparator(String sortBy, String sortOrder) {
+        boolean isAscending = "asc".equalsIgnoreCase(sortOrder);
+
+        Comparator<ProductDto> comparator = switch (sortBy != null ? sortBy.toLowerCase() : "relevance") {
+            case "name" -> Comparator.comparing(
+                    ProductDto::getName, Comparator.nullsLast(String::compareToIgnoreCase));
+            case "price" -> Comparator.comparing(
+                    ProductDto::getPrice, Comparator.nullsLast(Double::compareTo));
+            case "rating" -> Comparator.comparing(
+                    ProductDto::getRating, Comparator.nullsLast(Double::compareTo));
+            case "popularity" -> Comparator.comparing(
+                    ProductDto::getReviewCount, Comparator.nullsLast(Integer::compareTo));
+            default -> Comparator
+                    .comparing(ProductDto::getReviewCount, Comparator.nullsLast(Integer::compareTo))
+                    .thenComparing(ProductDto::getRating, Comparator.nullsLast(Double::compareTo));
         };
+
+        return isAscending ? comparator : comparator.reversed();
     }
-    
-    private PaginationDto createPaginationDto(Page<Product> page) {
-        return new PaginationDto(
-            page.getNumber(),
-            page.getTotalPages(),
-            page.getSize(),
-            (int) page.getTotalElements(),
-            page.hasNext(),
-            page.hasPrevious()
-        );
+
+    private PaginationDto createPaginationDto(int page, int size, int totalElements) {
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+        boolean hasNext = page < totalPages - 1;
+        boolean hasPrevious = page > 0;
+
+        return new PaginationDto(page, totalPages, size, totalElements, hasNext, hasPrevious);
     }
-    
+
     private AppliedFiltersDto createAppliedFiltersDto(SearchCriteria criteria) {
         AppliedFiltersDto filters = new AppliedFiltersDto();
         filters.setQuery(criteria.getQuery());
@@ -114,11 +199,11 @@ public class SearchService {
         filters.setMinRating(criteria.getMinRating());
         filters.setSortBy(criteria.getSortBy());
         filters.setSortOrder(criteria.getSortOrder());
-        
+
         if (criteria.getMinPrice() != null || criteria.getMaxPrice() != null) {
             filters.setPriceRange(new PriceRangeDto(criteria.getMinPrice(), criteria.getMaxPrice()));
         }
-        
+
         return filters;
     }
 }

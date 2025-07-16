@@ -16,3 +16,52 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
     open-in-view: false
+
+  cache:
+    type: simple
+    cache-names:
+      - external-products
+      - external-categories
+      - suggestions
+      - popular-products
+
+# External Product Service Configuration
+external:
+  product:
+    service:
+      url: ${EXTERNAL_PRODUCT_SERVICE_URL:https://repertoire-webservice.azurewebsites.net}
+      timeout: ${EXTERNAL_PRODUCT_SERVICE_TIMEOUT:5000}
+      retry:
+        maxAttempts: 3
+        delay: 1000
+  api:
+    base-url: ${EXTERNAL_API_BASE_URL:https://repertoire-webservice.azurewebsites.net}
+    key: ${EXTERNAL_API_KEY:}
+
+http:
+  client:
+    connection-timeout: 5000
+    read-timeout: 10000
+    max-connections: 50
+    max-connections-per-route: 20
+
+logging:
+  level:
+    com.marketplace.segno.service.ExternalProductProvider: INFO
+    com.marketplace.segno.service.SearchService: DEBUG
+    org.springframework.web.client.RestTemplate: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true

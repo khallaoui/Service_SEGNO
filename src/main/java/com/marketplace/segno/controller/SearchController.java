@@ -5,7 +5,6 @@ import com.marketplace.segno.dto.*;
 import com.marketplace.segno.service.SearchCriteria;
 import com.marketplace.segno.service.SearchService;
 import com.marketplace.segno.service.SearchHistoryService;
-import com.marketplace.segno.exception.ErrorResponse;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

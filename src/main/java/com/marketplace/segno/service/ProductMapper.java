@@ -1,8 +1,8 @@
 package com.marketplace.segno.service;
 
-
 import com.marketplace.segno.dto.ProductDto;
 import com.marketplace.segno.model.Product;
+import com.marketplace.segno.model.Product.Availability;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,8 +23,7 @@ public class ProductMapper {
         dto.setRating(product.getRating());
         dto.setReviewCount(product.getReviewCount());
         dto.setImageUrl(product.getImageUrl());
-        dto.setAvailability(product.getAvailability() != null ? 
-            product.getAvailability().name() : null);
+        dto.setAvailability(product.getAvailability());  // set enum directly
         dto.setBrand(product.getBrand());
         dto.setTags(product.getTags());
         
@@ -48,6 +47,7 @@ public class ProductMapper {
         product.setImageUrl(dto.getImageUrl());
         product.setBrand(dto.getBrand());
         product.setTags(dto.getTags());
+        product.setAvailability(dto.getAvailability()); 
         
         return product;
     }

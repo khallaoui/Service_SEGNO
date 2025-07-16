@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -63,6 +64,17 @@ public class GlobalExceptionHandler {
             request.getDescription(false).replace("uri=", "")
         );
         
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex, HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+            "NULL_POINTER",
+            "Une erreur est survenue (valeur manquante).",
+            LocalDateTime.now(),
+            request.getRequestURI()
+        );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 }

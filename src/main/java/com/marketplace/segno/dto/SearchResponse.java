@@ -9,13 +9,24 @@ public class SearchResponse {
     private Integer totalResults;
     private Double searchTime;
     
-    // Constructors, getters, setters...
+    // Default constructor
     public SearchResponse() {}
     
+    // Existing constructor without filters
     public SearchResponse(List<ProductDto> products, PaginationDto pagination, 
                          Integer totalResults, Double searchTime) {
         this.products = products;
         this.pagination = pagination;
+        this.totalResults = totalResults;
+        this.searchTime = searchTime;
+    }
+
+    // New constructor with filters
+    public SearchResponse(List<ProductDto> products, PaginationDto pagination, 
+                          AppliedFiltersDto filters, Integer totalResults, Double searchTime) {
+        this.products = products;
+        this.pagination = pagination;
+        this.filters = filters;
         this.totalResults = totalResults;
         this.searchTime = searchTime;
     }
@@ -36,4 +47,3 @@ public class SearchResponse {
     public Double getSearchTime() { return searchTime; }
     public void setSearchTime(Double searchTime) { this.searchTime = searchTime; }
 }
-
