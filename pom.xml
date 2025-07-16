@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.1.3</version> <!-- Spring Boot 3.5.3 doesn't exist as of June 2025; use latest valid version -->
+        <version>3.1.3</version>
         <relativePath/>
     </parent>
 
@@ -19,10 +19,10 @@
 
     <properties>
         <java.version>17</java.version>
+        <lombok.version>1.18.30</lombok.version> <!-- Added Lombok version -->
     </properties>
 
     <dependencies>
-
         <!-- Web and JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -40,24 +40,17 @@
             <version>42.7.3</version>
         </dependency>
 
-        <!-- MySQL: Keep one version only -->
-    
-
-        <!-- Apache HTTP Client -->
-
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+            <version>5.3</version>
+        </dependency>
         
         <dependency>
-  			<groupId>org.apache.httpcomponents.client5</groupId>
-  			<artifactId>httpclient5</artifactId>
-  			<version>5.3</version> <!-- or latest -->
-		</dependency>
-		
-		
-		<dependency>
-    		<groupId>com.mysql</groupId>
-    		<artifactId>mysql-connector-j</artifactId>
-    		<scope>runtime</scope>
-		</dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
 
         <!-- Retry and Caching -->
         <dependency>
@@ -80,6 +73,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
 
@@ -104,41 +98,37 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
-    
     <build>
-    <plugins>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.11.0</version> <!-- explicitly specify plugin version -->
-            <configuration>
-                <release>17</release>
-                <annotationProcessorPaths>
-                    <path>
-                        <groupId>org.projectlombok</groupId>
-                        <artifactId>lombok</artifactId>
-                        <version>1.18.28</version>  <!-- ADD THIS version -->
-                    </path>
-                </annotationProcessorPaths>
-            </configuration>
-        </plugin>
-        <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <configuration>
-                <excludes>
-                    <exclude>
-                        <groupId>org.projectlombok</groupId>
-                        <artifactId>lombok</artifactId>
-                    </exclude>
-                </excludes>
-            </configuration>
-        </plugin>
-    </plugins>
-</build>
-
-
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version> <!-- Explicit version -->
+                <configuration>
+                    <release>17</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version> <!-- Added version -->
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
