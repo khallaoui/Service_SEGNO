@@ -5,8 +5,8 @@
 ---
 
 ## 🔗 Live Deployment
-- **Production:** [https://servicesegno-production.up.railway.app](https://servicesegno-production.up.railway.app)  
-- **Swagger API Documentation:** [SEGNO API](https://app.swaggerhub.com/apis/universityibntofail/SEGNO/1.0.0)  
+- **Production:** Railway
+- **Swagger API Documentation:** Swaggerhub
 
 ---
 
