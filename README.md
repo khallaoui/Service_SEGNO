@@ -67,9 +67,12 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-    open-in-view: false
+    open-in-view: false```
 
-📄 Complete API Specification (OpenAPI 3.0.3)
+---
+
+## 📄 Complete API Specification (OpenAPI 3.0.3)
+```yaml
 openapi: 3.0.3
 info:
   title: SEGNO - Service de Recherche
