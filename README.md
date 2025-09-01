@@ -1,16 +1,16 @@
 # SEGNO - Intelligent Search Web Service
 
-🎯 **SEGNO** is a RESTful web service designed for the e-commerce marketplace SEGNO. It provides intelligent product search, filtering, and discovery features to enhance user experience with personalized, performant, and scalable APIs.
+ **SEGNO** is a RESTful web service designed for the e-commerce marketplace SEGNO. It provides intelligent product search, filtering, and discovery features to enhance user experience with personalized, performant, and scalable APIs.
 
 ---
 
-## 🔗 Live Deployment
+##  Live Deployment
 - **Production:** Railway
 - **Swagger API Documentation:** Swaggerhub
 
 ---
 
-## 🛠 Technology Stack
+##  Technology Stack
 
 - **Backend:** Java, Spring Boot, Spring MVC, RESTful APIs
 - **Database:** PostgreSQL
@@ -20,7 +20,7 @@
 
 ---
 
-## ⚙️ Features
+##  Features
 
 - **Smart Text Search** – Search products with partial or complete keywords.
 - **Advanced Filters** – Filter results by category, price range, ratings, and popularity.
@@ -32,7 +32,7 @@
 
 ---
 
-## 📦 API Endpoints
+##  API Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
@@ -47,7 +47,7 @@ For full API documentation, see [SwaggerHub](https://app.swaggerhub.com/apis/uni
 
 ---
 
-## 🔧 Configuration
+##  Configuration
 
 ```yaml
 server:
@@ -74,13 +74,13 @@ spring:
 ----------------------------------------------------
 
 
-## 📄 Complete API Specification (OpenAPI 3.0.3)
+##  Complete API Specification (OpenAPI 3.0.3)
 
 openapi: 3.0.3
 info:
   title: SEGNO - Service de Recherche
   description: |
-    🎯 **Service de recherche intelligent pour la marketplace e-commerce SEGNO**
+     **Service de recherche intelligent pour la marketplace e-commerce SEGNO**
 
     Ce service d'API RESTful fournit les fonctionnalités essentielles pour permettre aux utilisateurs de naviguer, rechercher, filtrer et découvrir efficacement les produits disponibles sur la plateforme SEGNO. Il est conçu pour améliorer l'expérience utilisateur en facilitant l'accès aux produits pertinents, tout en intégrant des mécanismes de personnalisation, d'optimisation de la pertinence, et de performance.
 
